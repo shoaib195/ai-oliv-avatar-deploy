@@ -25,59 +25,66 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [messages, setMessages] = useState<TrainChatMessage[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
+ 
+
+
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const [errorIndex, setErrorIndex] = useState(0);
+  // const [olivData, setOlivData] = useState(DEFAULT_OLIV_DATA);
+
 
   const DEFAULT_OLIV_DATA = {
-    candidate: {
-      username: "guest",
-      email: "guest@yopmail.com",
-      fullName: "",
-      about: "",
-      location: "",
-      phoneNumber: "",
-      id: "",
-    },
-    employer: {
-      email: "guestemp@yopmail.com",
-    },
-  };
+  candidate: {
+    username: "guest",
+    email: "guest@yopmail.com",
+    fullName: "",
+    about: "",
+    location: "",
+    phoneNumber: "",
+    id: "",
+  },
+  employer: {
+    email: "guestemp@yopmail.com",
+  },
+};
 
-  let olivData = DEFAULT_OLIV_DATA;
+let olivData = DEFAULT_OLIV_DATA;
 
-  // decode from query param q if exists
-  const q = useSearchParams().get("q");
-  if (q) {
+// decode from query param q if exists
+const q = useSearchParams().get("q");
+if (q) {
+  try {
+    const decoded = Buffer.from(q, "base64").toString("utf8");
+    const parsed = JSON.parse(decoded); // parse once
+    olivData = { 
+      candidate: { ...DEFAULT_OLIV_DATA.candidate, ...parsed.candidate },
+      employer: { ...DEFAULT_OLIV_DATA.employer, ...parsed.employer },
+    };
+    localStorage.setItem("olivData", JSON.stringify(olivData)); // store proper object
+  } catch (e) {
+    console.error("Decode error:::", e);
+    localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
+  }
+} else {
+  // if localStorage empty
+  const stored = localStorage.getItem("olivData");
+  if (stored) {
     try {
-      const decoded = Buffer.from(q, "base64").toString("utf8");
-      const parsed = JSON.parse(decoded); // parse once
-      olivData = {
-        candidate: { ...DEFAULT_OLIV_DATA.candidate, ...parsed.candidate },
-        employer: { ...DEFAULT_OLIV_DATA.employer, ...parsed.employer },
-      };
-      localStorage.setItem("olivData", JSON.stringify(olivData)); // store proper object
-    } catch (e) {
-      console.error("Decode error:::", e);
+      olivData = JSON.parse(stored);
+    } catch {
+      olivData = DEFAULT_OLIV_DATA;
       localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
     }
   } else {
-    // if localStorage empty
-    const stored = localStorage.getItem("olivData");
-    if (stored) {
-      try {
-        olivData = JSON.parse(stored);
-      } catch {
-        olivData = DEFAULT_OLIV_DATA;
-        localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
-      }
-    } else {
-      localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
-    }
+    localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
   }
+}
+
 
   const getOlivData = JSON.parse(localStorage.getItem("olivData") || "{}");
+
 
   const errorMessages = [
     "Hmm… something went wrong on my side. Maybe the agent ID didn’t respond correctly. Could you try again?",
@@ -85,6 +92,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     "I'm trying to reconnect to the agent, but the request failed again. Possibly an incorrect username or session error — try once more?",
     "Connection dropped with the agent. It could be a wrong agent ID or temporary network issue. Please try again differently.",
   ];
+  
+  
 
   useEffect(() => {
     // Always scroll to bottom smoothly when messages update
@@ -138,7 +147,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   //  const searchParams = useSearchParams();
   //     const q = searchParams.get("q");
-
+    
   //     let decoded = "";
   //     try {
   //       decoded = Buffer.from(q || "", "base64").toString("utf8");
@@ -146,6 +155,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   //     } catch (e) {
   //       console.error("Decode error:::", e);
   //     }
+  
 
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -176,7 +186,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         const response = await chatAvatar({
           user_name: id,
           message: trimmedInput,
-          email: getOlivData.employer.email,
+          email: getOlivData.employer.email
         });
 
         const reply =
@@ -209,7 +219,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const response = await chatAvatar({
         user_name: id,
         message: trimmedInput,
-        email: getOlivData.employer.email,
+        email: getOlivData.employer.email
       });
 
       const reply =
@@ -234,7 +244,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   // JSX
   // -----------------------------
   return (
-    <div className="h-full bg-gradient-to-b from-white to-[#f4f6ff] flex items-center justify-center py-12">
+    <div className="h-[100vh] bg-gradient-to-b from-white to-[#f4f6ff] flex items-center justify-center py-12">
       <div className="container w-full max-w-3xl px-4 mx-auto">
         <Card className="p-2 border-0 shadow-none md:p-10">
           {/* Header with gradient */}
@@ -383,7 +393,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           </Card>
         </Card>
 
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <Link href={`/update/${id}`}>
             <Button
               size="lg"
@@ -393,7 +403,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
               Update your avatar
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );

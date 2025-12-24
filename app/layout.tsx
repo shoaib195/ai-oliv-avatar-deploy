@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,6 +25,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [role, setRole] = useState<string | null>(null);
+
+  // ✅ Get role from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("olivData");
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored);
+
+      if (parsed?.employer?.role === "employer") {
+        setRole("employer");
+      } else if (parsed?.candidate) {
+        setRole("candidate");
+      }
+    } catch (e) {
+      console.error("Invalid olivData", e);
+    }
+  }, []);
 
   /**
    * ❌ Footer hide when:
@@ -31,6 +51,11 @@ export default function RootLayout({
    */
   const hideFooter =
     pathname !== "/" && pathname.split("/").length === 2;
+
+  /**
+   * ❌ Header hide when role is employer
+   */
+  const hideHeader = role === "employer";
 
   return (
     <html lang="en">
@@ -42,7 +67,10 @@ export default function RootLayout({
       >
         <StoreProvider>
           <div className="flex min-h-screen flex-col">
-            <Header />
+
+            {/* Header condition */}
+            {!hideHeader && <Header />}
+
             <main className="flex-1">{children}</main>
 
             {/* Footer condition */}
