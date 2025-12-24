@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Plus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -45,6 +46,7 @@ import Link from "next/link";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { uploadAvatarDocument, addKnowledge, type AddKnowledgePayload } from "@/lib/api/avatarApi";
 import { fetchAvatarDetails } from "@/lib/store/slices/avatarSlice";
+import { getStoredUserName } from "@/lib/utils/userStorage";
 
 type KnowledgeFile = {
   id: string;
@@ -53,13 +55,58 @@ type KnowledgeFile = {
   source: "existing" | "uploaded";
 };
 
+const ManageSkeleton = () => (
+  <div className="min-h-screen bg-gradient-to-br from-[#f7f6fe] via-white to-[#eef2ff]">
+    <header className="sticky top-0 z-10 border-b border-[#4454FF]/10 bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between max-w-5xl px-4 py-4 mx-auto">
+        <div className="flex items-center gap-4 w-full">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <Skeleton className="h-9 w-28" />
+        </div>
+      </div>
+    </header>
+    <main className="max-w-5xl px-4 py-8 mx-auto space-y-6">
+      <Card className="border-[#4454FF]/20 bg-gradient-to-r from-[#f7f6fe] to-white shadow-lg shadow-[#4454FF]/10">
+        <CardContent className="py-6">
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-40" />
+        <Card className="border-[#4454FF]/10 shadow-md shadow-[#4454FF]/5">
+          <CardContent className="py-6 space-y-4">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-36 w-full" />
+          </CardContent>
+        </Card>
+        <Card className="border-[#4454FF]/10 shadow-md shadow-[#4454FF]/5">
+          <CardContent className="py-6 space-y-4">
+            <Skeleton className="h-6 w-1/3" />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-24 w-full md:col-span-2" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </main>
+  </div>
+);
+
 const ManageAvatar = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const avatarStore = useAppSelector((state) => state.avatar);
   const avatarHandle = avatarStore.handle;
+  const hasFetchedOnManage = useRef(false);
 
   const [currentHost, setCurrentHost] = useState("");
+  const [isManageLoading, setIsManageLoading] = useState(false);
 
   const [avatarData, setAvatarData] = useState({
     fullName: "John Doe",
@@ -90,6 +137,26 @@ const ManageAvatar = () => {
       setCurrentHost(window.location.host);
     }
   }, []);
+
+  useEffect(() => {
+    if (hasFetchedOnManage.current) return;
+
+    const resolvedUserName = avatarHandle || getStoredUserName();
+    if (!resolvedUserName) {
+      return;
+    }
+
+    hasFetchedOnManage.current = true;
+    setIsManageLoading(true);
+    void dispatch(fetchAvatarDetails(resolvedUserName));
+  }, [avatarHandle, dispatch]);
+
+  useEffect(() => {
+    if (!isManageLoading) return;
+    if (!avatarStore.detailsLoading) {
+      setIsManageLoading(false);
+    }
+  }, [avatarStore.detailsLoading, isManageLoading]);
 
   const expertiseOptions: string[] = [
     "Design",
@@ -351,6 +418,10 @@ const ManageAvatar = () => {
       description: "Define your own tone",
     },
   ];
+
+  if (isManageLoading) {
+    return <ManageSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f7f6fe] via-white to-[#eef2ff]">
