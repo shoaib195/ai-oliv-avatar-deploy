@@ -244,7 +244,7 @@ if (q) {
   // JSX
   // -----------------------------
   return (
-    <div className="h-full bg-gradient-to-b from-white to-[#f4f6ff] flex items-center justify-center py-12">
+    <div className="h-[100vh] bg-gradient-to-b from-white to-[#f4f6ff] flex items-center justify-center py-12">
       <div className="container w-full max-w-3xl px-4 mx-auto">
         <Card className="p-2 border-0 shadow-none md:p-10">
           {/* Header with gradient */}
@@ -393,7 +393,7 @@ if (q) {
           </Card>
         </Card>
 
-        <div className="flex justify-center">
+        {/* <div className="flex justify-center">
           <Link href={`/update/${id}`}>
             <Button
               size="lg"
@@ -403,7 +403,7 @@ if (q) {
               Update your avatar
             </Button>
           </Link>
-        </div>
+        </div> */}
       </div>
     </div>
   );
