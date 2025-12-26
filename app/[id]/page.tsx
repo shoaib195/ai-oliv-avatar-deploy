@@ -29,7 +29,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [isTyping, setIsTyping] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const [errorIndex, setErrorIndex] = useState(0);
-  // const [olivData, setOlivData] = useState(DEFAULT_OLIV_DAT);
+  // const [olivData, setOlivData] = useState(DEAULT_OLIV_DAT);
 
   const DEFAULT_OLIV_DATA = {
     candidate: {
