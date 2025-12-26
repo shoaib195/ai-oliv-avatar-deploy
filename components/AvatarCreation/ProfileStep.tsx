@@ -77,7 +77,7 @@ export function ProfileStep({ data, updateData, onNext, onBack }: ProfileStepPro
             rules={[
               { required: true, message: "is required" },
               { min: 2, message: "must be at least 2 characters" },
-              { max: 30, message: "cannot exceed 10 characters" },
+              { max: 100, message: "cannot exceed 10 characters" },
               { type: "text", message: "Text only" },
             ]}
             
