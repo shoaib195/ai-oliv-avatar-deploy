@@ -25,67 +25,73 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [messages, setMessages] = useState<TrainChatMessage[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
+ 
+
+
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const [errorIndex, setErrorIndex] = useState(0);
-  // const [olivData, setOlivData] = useState(DEAULT_OLIV_DAT);
 
-  const DEFAULT_OLIV_DATA = {
-    candidate: {
-      username: "guest",
-      email: "guest@yopmail.com",
-      fullName: "",
-      about: "",
-      location: "",
-      phoneNumber: "",
-      id: "",
-    },
-    employer: {
-      email: "guestemp@yopmail.com",
-    },
-  };
-
-  let olivData = DEFAULT_OLIV_DATA;
+  let olivData: Record<string, any> = {};
 
   // decode from query param q if exists
   const q = useSearchParams().get("q");
   if (q) {
     try {
       const decoded = Buffer.from(q, "base64").toString("utf8");
-      const parsed = JSON.parse(decoded); // parse once
-      olivData = {
-        candidate: { ...DEFAULT_OLIV_DATA.candidate, ...parsed.candidate },
-        employer: { ...DEFAULT_OLIV_DATA.employer, ...parsed.employer },
-      };
-      localStorage.setItem("olivData", JSON.stringify(olivData)); // store proper object
+      olivData = JSON.parse(decoded);
+      localStorage.setItem("olivData", JSON.stringify(olivData));
     } catch (e) {
       console.error("Decode error:::", e);
-      localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
     }
   } else {
-    // if localStorage empty
     const stored = localStorage.getItem("olivData");
     if (stored) {
       try {
         olivData = JSON.parse(stored);
-      } catch {
-        olivData = DEFAULT_OLIV_DATA;
-        localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
+      } catch (e) {
+        console.error("Invalid stored olivData", e);
       }
-    } else {
-      localStorage.setItem("olivData", JSON.stringify(DEFAULT_OLIV_DATA));
     }
   }
-
   const getOlivData = JSON.parse(localStorage.getItem("olivData") || "{}");
+  const employerEmail =
+    (getOlivData?.employer?.email || getOlivData?.email || "").trim();
 
   const errorMessages = [
     "Hmm… something went wrong on my side. Maybe the agent ID didn’t respond correctly. Could you try again?",
     "Still having trouble processing that. It looks like the agent ID might be invalid or disconnected. Please try rephrasing.",
     "I'm trying to reconnect to the agent, but the request failed again. Possibly an incorrect username or session error — try once more?",
     "Connection dropped with the agent. It could be a wrong agent ID or temporary network issue. Please try again differently.",
+    "It looks like you’re not logged in. Please <a href=\"https://oliv.com/employer/login\" class=\"text-[#4454FF] font-semibold underline\" target=\"_self\" rel=\"noreferrer\">log in at oliv.com</a> and try again.",
   ];
+
+  const loginRequiredMessage = errorMessages[errorMessages.length - 1];
+  const fallbackErrorMessages = errorMessages.slice(0, -1);
+
+  const handleMissingEmailError = (error: unknown) => {
+    const emailErrors = (error as any)?.response?.data?.errors?.email;
+
+    const missingEmail =
+      Array.isArray(emailErrors) &&
+      emailErrors.some(
+        (msg: unknown) =>
+          typeof msg === "string" &&
+          msg.toLowerCase().includes("email field is required")
+      );
+
+    if (missingEmail) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "avatar", content: loginRequiredMessage },
+      ]);
+      return true;
+    }
+
+    return false;
+  };
+
 
   useEffect(() => {
     // Always scroll to bottom smoothly when messages update
@@ -139,7 +145,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
   //  const searchParams = useSearchParams();
   //     const q = searchParams.get("q");
-
+    
   //     let decoded = "";
   //     try {
   //       decoded = Buffer.from(q || "", "base64").toString("utf8");
@@ -147,6 +153,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   //     } catch (e) {
   //       console.error("Decode error:::", e);
   //     }
+  
 
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -177,7 +184,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         const response = await chatAvatar({
           user_name: id,
           message: trimmedInput,
-          email: getOlivData.employer.email,
+          email: employerEmail,
         });
 
         const reply =
@@ -188,7 +195,10 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         // Replace the avatar reply AFTER the edited message
         setMessages((prev) => [...prev, { role: "avatar", content: reply }]);
       } catch (error) {
-        toast.error("Error while updating message.");
+        const handled = handleMissingEmailError(error);
+        if (!handled) {
+          toast.error("Error while updating message.");
+        }
       } finally {
         setIsTyping(false);
       }
@@ -210,7 +220,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       const response = await chatAvatar({
         user_name: id,
         message: trimmedInput,
-        email: getOlivData.employer.email,
+        email: employerEmail,
       });
 
       const reply =
@@ -220,12 +230,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
       setMessages((prev) => [...prev, { role: "avatar", content: reply }]);
     } catch (err) {
-      const messageToShow = errorMessages[errorIndex % errorMessages.length];
-      setMessages((prev) => [
-        ...prev,
-        { role: "avatar", content: messageToShow },
-      ]);
-      setErrorIndex((prev) => prev + 1);
+      const handled = handleMissingEmailError(err);
+
+      if (!handled) {
+        const messageToShow =
+          fallbackErrorMessages[errorIndex % fallbackErrorMessages.length];
+        setMessages((prev) => [
+          ...prev,
+          { role: "avatar", content: messageToShow },
+        ]);
+        setErrorIndex((prev) => prev + 1);
+      }
     } finally {
       setIsTyping(false);
     }

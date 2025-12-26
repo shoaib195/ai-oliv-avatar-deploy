@@ -54,6 +54,45 @@
 
 // Updated
 
+export type OlivData = {
+  id?: string;
+  username?: string;
+  user_name?: string;
+  agent_id?: string;
+  handle?: string;
+  fullName?: string;
+  oliv_id?: string;
+  candidate?: {
+    id?: string;
+    username?: string;
+    email?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
+
+export const getStoredOlivData = (): OlivData | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = localStorage.getItem("olivData");
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      return parsed as OlivData;
+    }
+  } catch (error) {
+    console.error("Invalid olivData JSON", error);
+  }
+
+  return null;
+};
+
 export const getStoredUserName = (): string | null => {
   if (typeof window === "undefined") {
     return null;
@@ -76,32 +115,37 @@ export const getStoredUserName = (): string | null => {
   }
 
   // 2️⃣ olivData (direct object)
-  const olivData = localStorage.getItem("olivData");
-  if (!olivData) {
+  const parsed = getStoredOlivData();
+  if (!parsed) {
     return null;
   }
 
-  try {
-    const parsed = JSON.parse(olivData);
+  return (
+    parsed.username ||
 
-    if (parsed && typeof parsed === "object") {
-      return (
-        // ✅ priority
-        parsed.username ||
+    // fallback
+    parsed.fullName ||
 
-        // fallback
-        parsed.fullName ||
+    // legacy
+    parsed.user_name ||
+    parsed.agent_id ||
+    parsed.handle ||
+    null
+  );
+};
 
-        // legacy
-        parsed.user_name ||
-        parsed.agent_id ||
-        parsed.handle ||
-        null
-      );
-    }
-  } catch (error) {
-    console.error("Invalid olivData JSON", error);
+export const getStoredOlivId = (): string | null => {
+  const parsed = getStoredOlivData();
+  if (!parsed) {
+    return null;
   }
 
-  return null;
+  return (
+    parsed.id ||
+    parsed.oliv_id ||
+    parsed.candidate?.id ||
+    parsed.user_id ||
+    parsed.userId ||
+    null
+  );
 };

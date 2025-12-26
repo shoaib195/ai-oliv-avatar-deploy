@@ -6,8 +6,8 @@ import StoreProvider from "@/lib/store/provider";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "sonner";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,15 +25,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+  const [hasOlivData, setHasOlivData] = useState<boolean | null>(null);
 
   // ✅ Get role from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("olivData");
-    if (!stored) return;
+    if (!stored) {
+      setHasOlivData(false);
+      return;
+    }
 
     try {
       const parsed = JSON.parse(stored);
+      setHasOlivData(true);
 
       if (parsed?.employer?.role === "employer") {
         setRole("employer");
@@ -42,8 +48,30 @@ export default function RootLayout({
       }
     } catch (e) {
       console.error("Invalid olivData", e);
+      setHasOlivData(false);
     }
   }, []);
+
+  const pathSegments = useMemo(
+    () => pathname.split("/").filter(Boolean),
+    [pathname]
+  );
+  const isRootPath = pathSegments.length === 0;
+  const isSingleSegmentPath = pathSegments.length === 1;
+  const restrictAccess = (!hasOlivData && hasOlivData !== null) || role === "employer";
+
+  useEffect(() => {
+    if (restrictAccess) {
+      if (isRootPath) {
+        router.replace("/chat");
+        return;
+      }
+
+      if (!isSingleSegmentPath) {
+        router.replace(`/${pathSegments[0] ?? ""}`);
+      }
+    }
+  }, [isRootPath, isSingleSegmentPath, pathSegments, restrictAccess, router]);
 
   /**
    * ❌ Footer hide when:
@@ -55,7 +83,7 @@ export default function RootLayout({
   /**
    * ❌ Header hide when role is employer
    */
-  const hideHeader = role === "employer";
+  const hideHeader = role === "employer" || hasOlivData === false;
 
   return (
     <html lang="en">

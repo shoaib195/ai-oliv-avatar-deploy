@@ -264,7 +264,7 @@ export function HandleStep({
     getOlivData?.username ||
     "";
 
-  const [handleValue, setHandleValue] = useState<string>(initialHandle);
+  const [handleValue, setHandleValue] = useState<string>("");
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const [hovered, setHovered] = useState<boolean>(false);
   const [buttonText, setButtonText] = useState<string>("Confirm");

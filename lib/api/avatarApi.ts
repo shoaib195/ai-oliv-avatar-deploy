@@ -94,6 +94,18 @@ export interface ChatHistoryResponse {
   message?: string;
 }
 
+export interface CheckAgentResponseData {
+  exists: boolean;
+  user_name?: string;
+}
+
+export interface CheckAgentResponse {
+  success: boolean;
+  data?: CheckAgentResponseData;
+  errors?: unknown[];
+  message?: string;
+}
+
 // Avatar API functions
 export const createAvatar = (payload: CreateAvatarPayload): Promise<AxiosResponse<AvatarResponse>> => {
   const formData = new FormData();
@@ -161,4 +173,13 @@ export const getChatHistory = (
   userName: string
 ): Promise<AxiosResponse<ChatHistoryResponse>> => {
   return Api.get(`/avatar/${userName}/chat-history`);
+};
+
+export const checkAgentByOlivId = (
+  olivId: string
+): Promise<AxiosResponse<CheckAgentResponse>> => {
+  const formData = new FormData();
+  formData.append("oliv_id", olivId);
+
+  return Api.post(`/avatar/check-agent`, formData);
 };

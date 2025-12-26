@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { makeStore, AppStore } from './store';
 import { setStore } from './storeRef';
 import { fetchAvatarDetails } from './slices/avatarSlice';
-import { getStoredUserName } from '@/lib/utils/userStorage';
+import { fetchAgentIdentity } from '@/lib/utils/avatarIdentity';
 
 export default function StoreProvider({
   children,
@@ -18,24 +18,41 @@ export default function StoreProvider({
     storeRef.current = makeStore();
   }
 
-  useEffect(() => {
+      useEffect(() => {
     const store = storeRef.current;
     if (!store) return;
 
     // Set store reference for axios interceptors
     setStore(store);
 
-    const userName = getStoredUserName();
-    if (!userName) return;
+    let cancelled = false;
 
-    const state = store.getState();
-    const alreadyFetched =
-      state.avatar.detailsFetched &&
-      state.avatar.lastFetchedHandle === userName;
+    const syncAvatarDetails = async () => {
+      try {
+        const identity = await fetchAgentIdentity();
+        if (cancelled) return;
 
-    if (!alreadyFetched) {
-      store.dispatch(fetchAvatarDetails(userName));
-    }
+        const userName = identity.userName;
+        if (!userName) return;
+
+        const state = store.getState();
+        const alreadyFetched =
+          state.avatar.detailsFetched &&
+          state.avatar.lastFetchedHandle === userName;
+
+        if (!alreadyFetched) {
+          store.dispatch(fetchAvatarDetails(userName));
+        }
+      } catch (error) {
+        console.error('Failed to sync avatar details', error);
+      }
+    };
+
+    void syncAvatarDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return <Provider store={storeRef.current}>{children}</Provider>;

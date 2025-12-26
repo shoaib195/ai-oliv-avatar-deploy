@@ -46,7 +46,7 @@ import Link from "next/link";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
 import { uploadAvatarDocument, addKnowledge, type AddKnowledgePayload } from "@/lib/api/avatarApi";
 import { fetchAvatarDetails } from "@/lib/store/slices/avatarSlice";
-import { getStoredUserName } from "@/lib/utils/userStorage";
+import { fetchAgentIdentity } from "@/lib/utils/avatarIdentity";
 
 type KnowledgeFile = {
   id: string;
@@ -141,14 +141,35 @@ const ManageAvatar = () => {
   useEffect(() => {
     if (hasFetchedOnManage.current) return;
 
-    const resolvedUserName = avatarHandle || getStoredUserName();
-    if (!resolvedUserName) {
-      return;
-    }
+    let cancelled = false;
 
-    hasFetchedOnManage.current = true;
-    setIsManageLoading(true);
-    void dispatch(fetchAvatarDetails(resolvedUserName));
+    const resolveAndFetch = async () => {
+      let resolvedUserName: string | undefined = avatarHandle || undefined;
+
+      if (!resolvedUserName) {
+        try {
+          const identity = await fetchAgentIdentity();
+          if (cancelled) return;
+          resolvedUserName = identity.userName || undefined;
+        } catch (error) {
+          console.error("Failed to resolve user name for manage page", error);
+        }
+      }
+
+      if (!resolvedUserName || cancelled) {
+        return;
+      }
+
+      hasFetchedOnManage.current = true;
+      setIsManageLoading(true);
+      void dispatch(fetchAvatarDetails(resolvedUserName));
+    };
+
+    void resolveAndFetch();
+
+    return () => {
+      cancelled = true;
+    };
   }, [avatarHandle, dispatch]);
 
   useEffect(() => {
@@ -259,7 +280,7 @@ const ManageAvatar = () => {
     avatarData.personality,
   ]);
 
-  const resolvedChatHandle = avatarHandle || avatarData.handle || "shoaib";
+  const resolvedChatHandle = avatarHandle || avatarData.handle || "";
   const avatarLink = currentHost
     ? `${currentHost}/${avatarData.handle}`
     : `/${avatarData.handle}`;

@@ -26,8 +26,8 @@ import {
   ChatHistoryMessage,
   getChatHistory,
 } from "@/lib/api/avatarApi";
-import { getStoredUserName } from "@/lib/utils/userStorage";
 import { useAppSelector } from "@/lib/store/hooks";
+import { fetchAgentIdentity } from "@/lib/utils/avatarIdentity";
 
 marked.setOptions({
   gfm: true,
@@ -111,18 +111,31 @@ const ChatHistory = () => {
   };
 
   useEffect(() => {
-    const stored = getStoredUserName();
-    if (stored) {
-      setResolvedUserName(stored);
-      return;
-    }
+    let cancelled = false;
 
-    if (avatarHandle) {
-      setResolvedUserName(avatarHandle);
-      return;
-    }
+    const resolveUserName = async () => {
+      try {
+        const identity = await fetchAgentIdentity();
+        if (cancelled) return;
 
-    setResolvedUserName("shoaib");
+        if (identity.userName) {
+          setResolvedUserName(identity.userName);
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to resolve user name for chat history", error);
+      }
+
+      if (!cancelled) {
+        setResolvedUserName(avatarHandle || null);
+      }
+    };
+
+    void resolveUserName();
+
+    return () => {
+      cancelled = true;
+    };
   }, [avatarHandle]);
 
   useEffect(() => {
