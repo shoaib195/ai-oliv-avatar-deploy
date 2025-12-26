@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -44,7 +44,11 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import { useAppSelector, useAppDispatch } from "@/lib/store/hooks";
-import { uploadAvatarDocument, addKnowledge, type AddKnowledgePayload } from "@/lib/api/avatarApi";
+import {
+  uploadAvatarDocument,
+  addKnowledge,
+  type AddKnowledgePayload,
+} from "@/lib/api/avatarApi";
 import { fetchAvatarDetails } from "@/lib/store/slices/avatarSlice";
 import { fetchAgentIdentity } from "@/lib/utils/avatarIdentity";
 
@@ -59,11 +63,11 @@ const ManageSkeleton = () => (
   <div className="min-h-screen bg-gradient-to-br from-[#f7f6fe] via-white to-[#eef2ff]">
     <header className="sticky top-0 z-10 border-b border-[#4454FF]/10 bg-white/80 backdrop-blur-sm">
       <div className="flex items-center justify-between max-w-5xl px-4 py-4 mx-auto">
-        <div className="flex items-center gap-4 w-full">
-          <Skeleton className="h-10 w-10 rounded-full" />
+        <div className="flex items-center w-full gap-4">
+          <Skeleton className="w-10 h-10 rounded-full" />
           <div className="flex-1 space-y-2">
-            <Skeleton className="h-5 w-48" />
-            <Skeleton className="h-4 w-32" />
+            <Skeleton className="w-48 h-5" />
+            <Skeleton className="w-32 h-4" />
           </div>
           <Skeleton className="h-9 w-28" />
         </div>
@@ -72,24 +76,24 @@ const ManageSkeleton = () => (
     <main className="max-w-5xl px-4 py-8 mx-auto space-y-6">
       <Card className="border-[#4454FF]/20 bg-gradient-to-r from-[#f7f6fe] to-white shadow-lg shadow-[#4454FF]/10">
         <CardContent className="py-6">
-          <Skeleton className="h-10 w-full" />
+          <Skeleton className="w-full h-10" />
         </CardContent>
       </Card>
       <div className="space-y-4">
-        <Skeleton className="h-12 w-40" />
+        <Skeleton className="w-40 h-12" />
         <Card className="border-[#4454FF]/10 shadow-md shadow-[#4454FF]/5">
           <CardContent className="py-6 space-y-4">
-            <Skeleton className="h-6 w-1/3" />
-            <Skeleton className="h-36 w-full" />
+            <Skeleton className="w-1/3 h-6" />
+            <Skeleton className="w-full h-36" />
           </CardContent>
         </Card>
         <Card className="border-[#4454FF]/10 shadow-md shadow-[#4454FF]/5">
           <CardContent className="py-6 space-y-4">
-            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="w-1/3 h-6" />
             <div className="grid gap-3 md:grid-cols-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-24 w-full md:col-span-2" />
+              <Skeleton className="w-full h-10" />
+              <Skeleton className="w-full h-10" />
+              <Skeleton className="w-full h-24 md:col-span-2" />
             </div>
           </CardContent>
         </Card>
@@ -128,7 +132,9 @@ const ManageAvatar = () => {
 
   const [customSkill, setCustomSkill] = useState("");
   const [isEditingSkills, setIsEditingSkills] = useState(false);
-  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>(() => []);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<KnowledgeFile[]>(
+    () => []
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -325,6 +331,17 @@ const ManageAvatar = () => {
     };
   };
 
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q");
+
+  let decoded = "";
+  try {
+    decoded = Buffer.from(q || "", "base64").toString("utf8");
+    localStorage.setItem("olivData", decoded);
+  } catch (e) {
+    console.error("Decode error:::", e);
+  }
+
   const handleSaveChanges = async () => {
     if (!isEditing || !isDirty || isSaving) return;
     setIsSaving(true);
@@ -500,7 +517,7 @@ const ManageAvatar = () => {
                   size="sm"
                   onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="shadow-lg shadow-red-200 cursor-pointer border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
+                  className="text-red-600 border-red-500 shadow-lg cursor-pointer shadow-red-200 hover:bg-red-500 hover:text-white"
                 >
                   Cancel
                 </Button>
@@ -557,7 +574,7 @@ const ManageAvatar = () => {
                 className="border-[#4454FF]/30 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />
-              Chat
+                Chat
               </Button>
             </div>
           </CardContent>
@@ -616,9 +633,7 @@ const ManageAvatar = () => {
                         variant="outline"
                         size="iconSm"
                         onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${avatarLink}`
-                          );
+                          navigator.clipboard.writeText(`${avatarLink}`);
                           toast.success("Link copied!");
                         }}
                       >
@@ -868,13 +883,13 @@ const ManageAvatar = () => {
               </CardHeader>
               <CardContent>
                 <Link href={`/update/${avatarData.handle}`}>
-                <Button
-                  variant="olivBtn"
-                  className="cursor-pointer"
-                  // onClick={() => router.push(`/update/${avatarData.handle}`)}
-                >
-                  Open Training Chat
-                </Button>
+                  <Button
+                    variant="olivBtn"
+                    className="cursor-pointer"
+                    // onClick={() => router.push(`/update/${avatarData.handle}`)}
+                  >
+                    Open Training Chat
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
@@ -892,7 +907,8 @@ const ManageAvatar = () => {
               <CardContent className="space-y-4">
                 {knowledgeFiles.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-[#4454FF]/30 bg-[#f7f6fe] px-4 py-6 text-center text-sm text-muted-foreground">
-                    No documents uploaded yet. Add PDFs or DOC files to train your avatar.
+                    No documents uploaded yet. Add PDFs or DOC files to train
+                    your avatar.
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -951,11 +967,7 @@ const ManageAvatar = () => {
                   )}
                 </Button>
               </CardContent>
-
-              
             </Card>
-
-        
           </TabsContent>
         </Tabs>
       </main>
